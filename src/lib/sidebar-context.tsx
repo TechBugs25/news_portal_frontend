@@ -19,25 +19,35 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     try {
       const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
       if (stored !== null) {
-        setIsCollapsedState(stored === 'true');
+        Promise.resolve().then(() => {
+          setIsCollapsedState(stored === 'true');
+        });
       }
     } catch {
       // Ignore localStorage access errors
     }
   }, []);
 
-  const setIsCollapsed = (collapsed: boolean) => {
+  const setIsCollapsed = React.useCallback((collapsed: boolean) => {
     setIsCollapsedState(collapsed);
     try {
       localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
     } catch {
       // Ignore localStorage errors
     }
-  };
+  }, []);
 
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  const toggleSidebar = React.useCallback(() => {
+    setIsCollapsedState((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
+      } catch {
+        // Ignore localStorage errors
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -58,7 +68,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isCollapsed]);
+  }, [toggleSidebar]);
 
   return (
     <SidebarContext.Provider value={{ isCollapsed, toggleSidebar, setIsCollapsed }}>

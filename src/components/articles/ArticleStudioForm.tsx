@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { apiClient, uploadMediaAsset } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/lib/toast-context';
-import { Article, ArticleStatus, EditorJsOutput } from '@/types/article';
+import { Article, ArticleStatus, EditorJsOutput, CreateArticlePayload } from '@/types/article';
 import { Category } from '@/types/category';
 import { Tag } from '@/types/tag';
 import { UserRole } from '@/types/user';
@@ -102,14 +102,12 @@ export default function ArticleStudioForm({
   useEffect(() => {
     async function loadTaxonomies() {
       try {
-        const catRes = await apiClient<any>('/categories');
+        const catRes = await apiClient<Category[] | { data: Category[] }>('/categories');
         const catList = Array.isArray(catRes) ? catRes : catRes.data || [];
         setCategories(catList);
-        if (!categoryId && catList.length > 0) {
-          setCategoryId(catList[0].id);
-        }
+        setCategoryId((prev) => prev || (catList.length > 0 ? catList[0].id : ''));
 
-        const tagRes = await apiClient<any>('/tags');
+        const tagRes = await apiClient<Tag[] | { data: Tag[] }>('/tags');
         const tagList = Array.isArray(tagRes) ? tagRes : tagRes.data || [];
         setAvailableTags(tagList);
       } catch (err) {
@@ -117,7 +115,9 @@ export default function ArticleStudioForm({
       }
     }
 
-    loadTaxonomies();
+    Promise.resolve().then(() => {
+      loadTaxonomies();
+    });
   }, []);
 
   function handleTitleChange(val: string) {
@@ -139,13 +139,13 @@ export default function ArticleStudioForm({
     setFeedback(null);
     try {
       const res = await uploadMediaAsset(file, `${title || 'Article'} cover image`);
-      const url = res.url || res.data?.url;
+      const url = res.url;
       setFeaturedImageUrl(url);
       setFeedback({ type: 'success', message: 'Cover image uploaded successfully' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       setFeedback({
         type: 'error',
-        message: err.message || 'Failed to upload cover image',
+        message: err instanceof Error ? err.message : 'Failed to upload cover image',
       });
     } finally {
       setIsUploadingCover(false);
@@ -186,7 +186,7 @@ export default function ArticleStudioForm({
     setIsSaving(true);
     setFeedback(null);
 
-    const payload: any = {
+    const payload: CreateArticlePayload = {
       title: title.trim(),
       slug: slug.trim() || slugify(title),
       excerpt: excerpt.trim() || undefined,
@@ -240,8 +240,8 @@ export default function ArticleStudioForm({
         });
         toast.show(successMsg, 'success');
       }
-    } catch (err: any) {
-      const errorMsg = err.message || 'Failed to save article';
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to save article';
       setFeedback({
         type: 'error',
         message: errorMsg,
@@ -523,6 +523,7 @@ export default function ArticleStudioForm({
 
             {featuredImageUrl ? (
               <div className="relative rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={resolveBackendUrl(featuredImageUrl)}
                   alt="Cover preview"

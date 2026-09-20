@@ -1,10 +1,11 @@
 import { API_BASE_URL, TOKEN_STORAGE_KEY } from './constants';
+import { Media } from '@/types/media';
 
 export class ApiError extends Error {
   statusCode: number;
-  data?: any;
+  data?: unknown;
 
-  constructor(message: string, statusCode: number, data?: any) {
+  constructor(message: string, statusCode: number, data?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.statusCode = statusCode;
@@ -45,7 +46,7 @@ export async function apiClient<T>(
     headers,
   });
 
-  let responseData: any;
+  let responseData: unknown;
   const contentType = response.headers.get('content-type');
   if (contentType && contentType.includes('application/json')) {
     responseData = await response.json();
@@ -56,12 +57,13 @@ export async function apiClient<T>(
   if (!response.ok) {
     let errorMessage = 'An error occurred';
     if (typeof responseData === 'object' && responseData !== null) {
-      if (Array.isArray(responseData.message)) {
-        errorMessage = responseData.message.join(', ');
-      } else if (responseData.message) {
-        errorMessage = responseData.message;
-      } else if (responseData.error) {
-        errorMessage = responseData.error;
+      const errObj = responseData as Record<string, unknown>;
+      if (Array.isArray(errObj.message)) {
+        errorMessage = errObj.message.join(', ');
+      } else if (typeof errObj.message === 'string') {
+        errorMessage = errObj.message;
+      } else if (typeof errObj.error === 'string') {
+        errorMessage = errObj.error;
       }
     }
     throw new ApiError(errorMessage, response.status, responseData);
@@ -71,9 +73,9 @@ export async function apiClient<T>(
   return unwrapResponse<T>(responseData);
 }
 
-function unwrapResponse<T>(responseData: any): T {
-  let current = responseData;
-  let meta: any = undefined;
+function unwrapResponse<T>(responseData: unknown): T {
+  let current: unknown = responseData;
+  let meta: unknown = undefined;
 
   while (
     current &&
@@ -81,10 +83,11 @@ function unwrapResponse<T>(responseData: any): T {
     'data' in current &&
     ('success' in current || 'statusCode' in current)
   ) {
-    if ('meta' in current) {
-      meta = current.meta;
+    const obj = current as Record<string, unknown>;
+    if ('meta' in obj) {
+      meta = obj.meta;
     }
-    current = current.data;
+    current = obj.data;
   }
 
   // If payload is already { data: [...], meta: {...} }
@@ -99,7 +102,7 @@ function unwrapResponse<T>(responseData: any): T {
 
   // If it is an array and we found metadata, attach it as non-enumerable or property
   if (Array.isArray(current) && meta) {
-    (current as any).meta = meta;
+    (current as unknown as { meta: unknown }).meta = meta;
   }
 
   return current as T;
@@ -112,7 +115,7 @@ export async function uploadMediaAsset(file: File, caption?: string) {
     formData.append('caption', caption);
   }
 
-  return apiClient<any>('/media/upload', {
+  return apiClient<Media>('/media/upload', {
     method: 'POST',
     body: formData,
   });

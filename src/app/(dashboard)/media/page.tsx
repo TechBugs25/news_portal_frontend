@@ -3,15 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   UploadCloud,
-  Image as ImageIcon,
   Copy,
   Check,
   Trash2,
   ExternalLink,
   RefreshCw,
   Search,
-  Calendar,
-  HardDrive,
 } from 'lucide-react';
 import { apiClient, uploadMediaAsset } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -41,10 +38,10 @@ export default function MediaLibraryPage() {
   const [deleteModalMedia, setDeleteModalMedia] = useState<Media | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  async function loadMedia() {
-    setIsLoading(true);
+  async function loadMedia(showLoading = false) {
+    if (showLoading) setIsLoading(true);
     try {
-      const res = await apiClient<any>('/media');
+      const res = await apiClient<Media[] | { data: Media[] }>('/media');
       const list = Array.isArray(res) ? res : res.data || [];
       setMediaList(list);
     } catch (err) {
@@ -55,7 +52,9 @@ export default function MediaLibraryPage() {
   }
 
   useEffect(() => {
-    loadMedia();
+    Promise.resolve().then(() => {
+      loadMedia();
+    });
   }, []);
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -67,12 +66,12 @@ export default function MediaLibraryPage() {
 
     try {
       const uploaded = await uploadMediaAsset(file, uploadCaption.trim() || undefined);
-      const mediaItem = uploaded.data || uploaded;
+      const mediaItem = uploaded;
       setMediaList((prev) => [mediaItem, ...prev]);
       setUploadCaption('');
       toast.show('Media asset uploaded successfully!', 'success');
-    } catch (err: any) {
-      const msg = err.message || 'File upload failed';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'File upload failed';
       setUploadError(msg);
       toast.show(msg, 'error');
     } finally {
@@ -101,8 +100,8 @@ export default function MediaLibraryPage() {
         setSelectedMedia(null);
       }
       toast.show('Media asset deleted.', 'info');
-    } catch (err: any) {
-      toast.show(err.message || 'Failed to delete media', 'error');
+    } catch (err: unknown) {
+      toast.show(err instanceof Error ? err.message : 'Failed to delete media', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -137,7 +136,7 @@ export default function MediaLibraryPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={loadMedia}
+            onClick={() => loadMedia(true)}
             isLoading={isLoading}
             className="gap-1.5"
           >
@@ -229,6 +228,7 @@ export default function MediaLibraryPage() {
                   className="aspect-video w-full overflow-hidden bg-zinc-100 dark:bg-zinc-950 cursor-pointer relative"
                   onClick={() => setSelectedMedia(media)}
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={fullUrl}
                     alt={media.caption || media.originalName}
@@ -309,6 +309,7 @@ export default function MediaLibraryPage() {
         {selectedMedia && (
           <div className="space-y-4">
             <div className="rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 max-h-[400px] flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={resolveBackendUrl(selectedMedia.url)}
                 alt={selectedMedia.caption || selectedMedia.originalName}

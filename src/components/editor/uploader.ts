@@ -6,7 +6,7 @@ export const editorImageUploader = {
     try {
       const mediaResult = await uploadMediaAsset(file);
       // Media result contains .url (e.g. /uploads/123-photo.jpg)
-      const relativeUrl = mediaResult.url || mediaResult.data?.url;
+      const relativeUrl = mediaResult.url;
       const fullUrl = resolveBackendUrl(relativeUrl);
 
       return {
@@ -16,11 +16,11 @@ export const editorImageUploader = {
           title: mediaResult.originalName || file.name,
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('EditorJS file upload failed:', error);
       return {
         success: 0,
-        message: error.message || 'Image upload failed',
+        message: error instanceof Error ? error.message : 'Image upload failed',
       };
     }
   },

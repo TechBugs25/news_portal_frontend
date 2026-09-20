@@ -68,9 +68,9 @@ export function calculateReadingTime(content: string): number {
       const parsed = JSON.parse(content);
       if (parsed.blocks && Array.isArray(parsed.blocks)) {
         text = parsed.blocks
-          .map((b: any) => {
-            if (b.data?.text) return b.data.text;
-            if (b.data?.items) return b.data.items.join(' ');
+          .map((b: { data?: { text?: string; items?: string[] } }) => {
+            if (typeof b.data?.text === 'string') return b.data.text;
+            if (Array.isArray(b.data?.items)) return b.data.items.join(' ');
             return '';
           })
           .join(' ');

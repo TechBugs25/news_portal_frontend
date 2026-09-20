@@ -11,7 +11,6 @@ import {
   Flame,
   Star,
   Clock,
-  CheckSquare,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -47,14 +46,16 @@ export default function ArticlesQueuePage() {
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  async function loadArticles() {
-    setIsLoading(true);
+  async function loadArticles(showLoading = false) {
+    if (showLoading) {
+      setIsLoading(true);
+    }
     try {
-      const res = await apiClient<any>('/articles/editorial/list?limit=50');
+      const res = await apiClient<Article[] | { data: Article[] }>('/articles/editorial/list?limit=50');
       const list = Array.isArray(res) ? res : res.data || [];
       setArticles(list);
 
-      const catRes = await apiClient<any>('/categories');
+      const catRes = await apiClient<Category[] | { data: Category[] }>('/categories');
       const catList = Array.isArray(catRes) ? catRes : catRes.data || [];
       setCategories(catList);
     } catch (err) {
@@ -65,7 +66,9 @@ export default function ArticlesQueuePage() {
   }
 
   useEffect(() => {
-    loadArticles();
+    Promise.resolve().then(() => {
+      loadArticles();
+    });
   }, []);
 
   // Filtered list
@@ -109,8 +112,8 @@ export default function ArticlesQueuePage() {
       );
       toast.show(`Article status updated to ${newStatus.replace('_', ' ')}!`, 'success');
       setStatusModalArticle(null);
-    } catch (err: any) {
-      toast.show(err.message || 'Failed to update status', 'error');
+    } catch (err: unknown) {
+      toast.show(err instanceof Error ? err.message : 'Failed to update status', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -126,8 +129,8 @@ export default function ArticlesQueuePage() {
       toast.show(`Article "${deleteModalArticle.title}" deleted.`, 'info');
       setArticles((prev) => prev.filter((a) => a.id !== deleteModalArticle.id));
       setDeleteModalArticle(null);
-    } catch (err: any) {
-      toast.show(err.message || 'Failed to delete article', 'error');
+    } catch (err: unknown) {
+      toast.show(err instanceof Error ? err.message : 'Failed to delete article', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -189,7 +192,7 @@ export default function ArticlesQueuePage() {
       );
       setSelectedIds(new Set());
       setBulkDeleteModalOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Fallback: parallel delete using single endpoints
       try {
         const results = await Promise.allSettled(
@@ -215,10 +218,10 @@ export default function ArticlesQueuePage() {
             setBulkDeleteModalOpen(false);
           }
         } else {
-          toast.show(err.message || 'Failed to delete selected articles', 'error');
+          toast.show(err instanceof Error ? err.message : 'Failed to delete selected articles', 'error');
         }
-      } catch (fallbackErr: any) {
-        toast.show(fallbackErr.message || 'Failed to delete selected articles', 'error');
+      } catch (fallbackErr: unknown) {
+        toast.show(fallbackErr instanceof Error ? fallbackErr.message : 'Failed to delete selected articles', 'error');
       }
     } finally {
       setIsProcessing(false);
@@ -256,7 +259,7 @@ export default function ArticlesQueuePage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={loadArticles}
+            onClick={() => loadArticles(true)}
             isLoading={isLoading}
             className="gap-1.5"
           >

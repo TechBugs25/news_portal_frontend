@@ -26,7 +26,7 @@ describe('API Client', () => {
         statusCode: 200,
         data: mockData,
       }),
-    } as any);
+    } as unknown as Response);
 
     const result = await apiClient<typeof mockData>('/articles');
     expect(result).toEqual(mockData);
@@ -35,20 +35,20 @@ describe('API Client', () => {
   it('attaches Bearer token from localStorage automatically', async () => {
     localStorage.setItem(TOKEN_STORAGE_KEY, 'test-jwt-token-xyz');
 
-    let capturedHeaders: any;
+    let capturedHeaders: Headers | undefined;
     global.fetch = vi.fn().mockImplementation((url, options) => {
       capturedHeaders = options.headers;
       return Promise.resolve({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => ({ data: { id: 'u1' } }),
-      });
+      } as unknown as Response);
     });
 
     await apiClient('/users/me');
 
-    expect(capturedHeaders.get('Authorization')).toBe('Bearer test-jwt-token-xyz');
-    expect(capturedHeaders.get('Content-Type')).toBe('application/json');
+    expect(capturedHeaders?.get('Authorization')).toBe('Bearer test-jwt-token-xyz');
+    expect(capturedHeaders?.get('Content-Type')).toBe('application/json');
   });
 
   it('throws ApiError with message and status code on failure', async () => {
@@ -61,7 +61,7 @@ describe('API Client', () => {
         message: 'Invalid credentials provided',
         error: 'Unauthorized',
       }),
-    } as any);
+    } as unknown as Response);
 
     await expect(apiClient('/auth/login', { method: 'POST' })).rejects.toThrow(ApiError);
     await expect(apiClient('/auth/login', { method: 'POST' })).rejects.toThrow('Invalid credentials provided');
@@ -76,7 +76,7 @@ describe('API Client', () => {
         statusCode: 400,
         message: ['email must be an email', 'password is too short'],
       }),
-    } as any);
+    } as unknown as Response);
 
     await expect(apiClient('/users', { method: 'POST' })).rejects.toThrow(
       'email must be an email, password is too short',

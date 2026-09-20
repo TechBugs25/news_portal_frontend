@@ -25,8 +25,8 @@ export default function EditArticlePage() {
           res = await apiClient<Article>(`/articles/${id}`);
         }
         setArticle(res);
-      } catch (err: any) {
-        setError(err.message || 'Article could not be loaded');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Article could not be loaded');
       } finally {
         setIsLoading(false);
       }

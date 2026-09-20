@@ -24,40 +24,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+  const logout = React.useCallback(() => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    router.push('/login');
+  }, [router]);
 
-    if (storedToken) {
-      setToken(storedToken);
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-        } catch {
-          // ignore corrupted local storage
-        }
-      }
-      // Re-fetch profile to ensure token validity
-      fetchProfile(storedToken);
-    } else {
-      setIsLoading(false);
-    }
-  }, []);
-
-  async function fetchProfile(authToken: string) {
-    try {
-      const profile = await apiClient<User>('/users/me', { token: authToken });
-      setUser(profile);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(profile));
-    } catch {
-      // If fetching profile fails (e.g. expired token), logout
-      logout();
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function login(email: string, password: string) {
+  const login = React.useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const result = await apiClient<LoginResponse>('/auth/login', {
@@ -76,16 +52,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [router]);
 
-  function logout() {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-    localStorage.removeItem(USER_STORAGE_KEY);
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    router.push('/login');
-  }
+  const fetchProfile = React.useCallback(async (authToken: string) => {
+    try {
+      const profile = await apiClient<User>('/users/me', { token: authToken });
+      setUser(profile);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(profile));
+    } catch {
+      // If fetching profile fails (e.g. expired token), logout
+      logout();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [logout]);
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+
+    if (storedToken) {
+      Promise.resolve().then(() => {
+        setToken(storedToken);
+        if (storedUser) {
+          try {
+            setUser(JSON.parse(storedUser));
+          } catch {
+            // ignore corrupted local storage
+          }
+        }
+        fetchProfile(storedToken);
+      });
+    } else {
+      Promise.resolve().then(() => {
+        setIsLoading(false);
+      });
+    }
+  }, [fetchProfile]);
 
   async function refreshUser() {
     if (!token) return;

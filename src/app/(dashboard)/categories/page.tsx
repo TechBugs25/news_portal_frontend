@@ -2,14 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  FolderTree,
   Plus,
   Edit2,
   Trash2,
   RefreshCw,
   Folder,
-  ChevronRight,
-  CheckCircle2,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -42,10 +39,10 @@ export default function CategoriesPage() {
   const [orderIndex, setOrderIndex] = useState(0);
   const [parentId, setParentId] = useState<string>('');
 
-  async function loadCategories() {
-    setIsLoading(true);
+  async function loadCategories(showLoading = false) {
+    if (showLoading) setIsLoading(true);
     try {
-      const res = await apiClient<any>('/categories');
+      const res = await apiClient<Category[] | { data: Category[] }>('/categories');
       const list = Array.isArray(res) ? res : res.data || [];
       setCategories(list);
     } catch (err) {
@@ -56,7 +53,9 @@ export default function CategoriesPage() {
   }
 
   useEffect(() => {
-    loadCategories();
+    Promise.resolve().then(() => {
+      loadCategories();
+    });
   }, []);
 
   function openCreateModal(parent?: Category) {
@@ -97,8 +96,8 @@ export default function CategoriesPage() {
       setIsCreateModalOpen(false);
       await loadCategories();
       toast.success(`Category "${name.trim()}" created successfully`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to create category');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create category');
     } finally {
       setIsProcessing(false);
     }
@@ -122,8 +121,8 @@ export default function CategoriesPage() {
       setEditingCategory(null);
       await loadCategories();
       toast.success(`Category "${name.trim()}" updated successfully`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update category');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update category');
     } finally {
       setIsProcessing(false);
     }
@@ -140,8 +139,8 @@ export default function CategoriesPage() {
       setDeleteModalCategory(null);
       await loadCategories();
       toast.success(`Category "${catName}" deleted`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete category');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete category');
     } finally {
       setIsProcessing(false);
     }
@@ -271,7 +270,7 @@ export default function CategoriesPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={loadCategories}
+            onClick={() => loadCategories(true)}
             isLoading={isLoading}
             className="gap-1.5"
           >

@@ -10,7 +10,7 @@ import { UserRole } from '@/types/user';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { formatDate, slugify } from '@/lib/utils';
+import { slugify } from '@/lib/utils';
 
 export default function TagsPage() {
   const { hasRole } = useAuth();
@@ -28,10 +28,10 @@ export default function TagsPage() {
   const [deleteModalTag, setDeleteModalTag] = useState<Tag | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  async function loadTags() {
-    setIsLoading(true);
+  async function loadTags(showLoading = false) {
+    if (showLoading) setIsLoading(true);
     try {
-      const res = await apiClient<any>('/tags');
+      const res = await apiClient<Tag[] | { data: Tag[] }>('/tags');
       const list = Array.isArray(res) ? res : res.data || [];
       setTags(list);
     } catch (err) {
@@ -42,7 +42,9 @@ export default function TagsPage() {
   }
 
   useEffect(() => {
-    loadTags();
+    Promise.resolve().then(() => {
+      loadTags();
+    });
   }, []);
 
   async function handleCreateTag(e: React.FormEvent) {
@@ -63,8 +65,8 @@ export default function TagsPage() {
       setTags((prev) => [created, ...prev]);
       setNewTagName('');
       setNewTagSlug('');
-    } catch (err: any) {
-      toast.show(err.message || 'Failed to create tag', 'error');
+    } catch (err: unknown) {
+      toast.show(err instanceof Error ? err.message : 'Failed to create tag', 'error');
     } finally {
       setIsCreating(false);
     }
@@ -78,8 +80,8 @@ export default function TagsPage() {
       toast.show(`Tag "${deleteModalTag.name}" deleted successfully.`, 'info');
       setTags((prev) => prev.filter((t) => t.id !== deleteModalTag.id));
       setDeleteModalTag(null);
-    } catch (err: any) {
-      toast.show(err.message || 'Failed to delete tag', 'error');
+    } catch (err: unknown) {
+      toast.show(err instanceof Error ? err.message : 'Failed to delete tag', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -110,7 +112,7 @@ export default function TagsPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={loadTags}
+            onClick={() => loadTags(true)}
             isLoading={isLoading}
             className="gap-1.5"
           >

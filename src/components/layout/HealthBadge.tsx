@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Activity, CheckCircle2, AlertCircle, Database } from 'lucide-react';
+import { Activity, CheckCircle2, AlertCircle } from 'lucide-react';
 import { BACKEND_URL } from '@/lib/constants';
 
 interface HealthState {

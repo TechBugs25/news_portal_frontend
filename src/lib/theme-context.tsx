@@ -17,14 +17,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark');
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark');
 
-  useEffect(() => {
-    const stored = localStorage.getItem('newsroom_theme') as Theme | null;
-    const initialTheme: Theme = stored || 'dark';
-    setThemeState(initialTheme);
-    applyTheme(initialTheme);
-  }, []);
-
-  function applyTheme(targetTheme: Theme) {
+  const applyTheme = React.useCallback((targetTheme: Theme) => {
     let effective: 'dark' | 'light' = 'dark';
 
     if (targetTheme === 'system') {
@@ -46,7 +39,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.add('light');
       root.style.colorScheme = 'light';
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('newsroom_theme') as Theme | null;
+    const initialTheme: Theme = stored || 'dark';
+    Promise.resolve().then(() => {
+      setThemeState(initialTheme);
+      applyTheme(initialTheme);
+    });
+  }, [applyTheme]);
 
   function setTheme(newTheme: Theme) {
     setThemeState(newTheme);

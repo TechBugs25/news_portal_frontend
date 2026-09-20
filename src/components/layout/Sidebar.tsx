@@ -15,6 +15,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Globe2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useSidebar } from '@/lib/sidebar-context';
@@ -70,6 +71,13 @@ export default function Sidebar() {
       href: '/users',
       icon: Users,
       roles: [UserRole.ADMIN],
+    },
+    {
+      label: '3D World Navigation',
+      href: '/world',
+      icon: Globe2,
+      badge: '3D',
+      roles: [UserRole.ADMIN, UserRole.CHIEF_EDITOR, UserRole.REPORTER],
     },
   ];
 
@@ -184,6 +192,12 @@ export default function Sidebar() {
                   />
                   {!isCollapsed && <span className="truncate">{item.label}</span>}
                 </div>
+
+                {!isCollapsed && item.badge && (
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20">
+                    {item.badge}
+                  </span>
+                )}
 
                 {!isCollapsed && item.highlight && !isActive && (
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />

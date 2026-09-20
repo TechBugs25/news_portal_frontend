@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import type EditorJS from '@editorjs/editorjs';
 import { editorImageUploader } from './uploader';
 import { EditorJsOutput } from '@/types/article';
 
@@ -19,9 +20,21 @@ export default function EditorJsWrapper({
   placeholder = 'Write the breaking news story or editorial draft here...',
   readOnly = false,
 }: EditorProps) {
-  const editorInstance = useRef<any>(null);
+  const editorInstance = useRef<EditorJS | null>(null);
   const isMounted = useRef(false);
   const [isReady, setIsReady] = useState(false);
+
+  const onChangeRef = useRef(onChange);
+  const initialDataRef = useRef(initialData);
+  const placeholderRef = useRef(placeholder);
+  const readOnlyRef = useRef(readOnly);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    initialDataRef.current = initialData;
+    placeholderRef.current = placeholder;
+    readOnlyRef.current = readOnly;
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -30,7 +43,7 @@ export default function EditorJsWrapper({
 
     async function initEditor() {
       // Dynamic imports to prevent SSR issues
-      const EditorJS = (await import('@editorjs/editorjs')).default;
+      const EditorJSModule = (await import('@editorjs/editorjs')).default;
       const Header = (await import('@editorjs/header')).default;
       const ImageTool = (await import('@editorjs/image')).default;
       const List = (await import('@editorjs/list')).default;
@@ -43,18 +56,19 @@ export default function EditorJsWrapper({
       const InlineCode = (await import('@editorjs/inline-code')).default;
 
       // Parse initial data if passed as string
-      let parsedData: any = undefined;
-      if (typeof initialData === 'string' && initialData.trim()) {
+      let parsedData: EditorJsOutput | undefined = undefined;
+      const rawInitial = initialDataRef.current;
+      if (typeof rawInitial === 'string' && rawInitial.trim()) {
         try {
-          if (initialData.startsWith('{') && initialData.endsWith('}')) {
-            parsedData = JSON.parse(initialData);
+          if (rawInitial.startsWith('{') && rawInitial.endsWith('}')) {
+            parsedData = JSON.parse(rawInitial);
           } else {
             // Raw text fallback to single paragraph block
             parsedData = {
               blocks: [
                 {
                   type: 'paragraph',
-                  data: { text: initialData },
+                  data: { text: rawInitial },
                 },
               ],
             };
@@ -64,13 +78,13 @@ export default function EditorJsWrapper({
             blocks: [
               {
                 type: 'paragraph',
-                data: { text: initialData },
+                data: { text: rawInitial },
               },
             ],
           };
         }
-      } else if (initialData && typeof initialData === 'object') {
-        parsedData = initialData;
+      } else if (rawInitial && typeof rawInitial === 'object') {
+        parsedData = rawInitial;
       }
 
       if (editorInstance.current) {
@@ -84,10 +98,10 @@ export default function EditorJsWrapper({
 
       if (isDestroyed) return;
 
-      const editor = new EditorJS({
+      const editor = new EditorJSModule({
         holder: holderId,
-        readOnly,
-        placeholder,
+        readOnly: readOnlyRef.current,
+        placeholder: placeholderRef.current,
         data: parsedData,
         tools: {
           header: {
@@ -121,7 +135,7 @@ export default function EditorJsWrapper({
             },
           },
           table: {
-            class: Table,
+            class: Table as unknown as import('@editorjs/editorjs').ToolConstructable,
             inlineToolbar: true,
             config: {
               rows: 2,
@@ -149,10 +163,10 @@ export default function EditorJsWrapper({
           inlineCode: InlineCode,
         },
         async onChange() {
-          if (onChange && editorInstance.current) {
+          if (onChangeRef.current && editorInstance.current) {
             try {
               const output = await editorInstance.current.save();
-              onChange(output);
+              onChangeRef.current(output as unknown as EditorJsOutput);
             } catch (err) {
               console.error('EditorJS save error:', err);
             }

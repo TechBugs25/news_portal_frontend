@@ -1,22 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PenSquare, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PenSquare, ExternalLink, PanelLeftClose, PanelLeftOpen, Globe2 } from 'lucide-react';
 import HealthBadge from './HealthBadge';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { Button } from '@/components/ui/Button';
-import { useAuth } from '@/lib/auth-context';
 import { useSidebar } from '@/lib/sidebar-context';
+import WorldGlobeModal from '@/components/globe/WorldGlobeModal';
 
 export default function Topbar() {
   const pathname = usePathname();
-  const { user } = useAuth();
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const [isGlobeModalOpen, setIsGlobeModalOpen] = useState(false);
 
   function getPageTitle() {
     if (pathname === '/') return 'Newsroom Overview';
+    if (pathname === '/world') return '3D Moveable World Navigation';
     if (pathname === '/articles') return 'Editorial Workflow Queue';
     if (pathname === '/articles/new') return 'Article Studio • New Story';
     if (pathname.includes('/edit')) return 'Article Studio • Edit Story';
@@ -55,6 +56,16 @@ export default function Topbar() {
         {/* Dark / Light Mode Switch */}
         <ThemeToggle />
 
+        {/* Quick 3D World Globe Modal Trigger */}
+        <button
+          onClick={() => setIsGlobeModalOpen(true)}
+          title="Open 3D Moveable World Navigator"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-lg transition-colors cursor-pointer"
+        >
+          <Globe2 className="w-3.5 h-3.5 text-cyan-500 animate-pulse" />
+          <span className="hidden sm:inline">3D World</span>
+        </button>
+
         {/* Quick Link to Swagger / API */}
         <a
           href="http://localhost:8080/api/docs"
@@ -77,6 +88,11 @@ export default function Topbar() {
           </Link>
         )}
       </div>
+
+      <WorldGlobeModal
+        isOpen={isGlobeModalOpen}
+        onClose={() => setIsGlobeModalOpen(false)}
+      />
     </header>
   );
 }

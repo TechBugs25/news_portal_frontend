@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Newspaper, Home, ArrowLeft } from 'lucide-react';
+import { Newspaper, Home } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function NotFound() {

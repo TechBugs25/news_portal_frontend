@@ -13,6 +13,7 @@ import {
   Activity,
   Layers,
   Flame,
+  Globe2,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
@@ -22,25 +23,38 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { formatTimeAgo } from '@/lib/utils';
 import ArticlePreviewModal from '@/components/editor/ArticlePreviewModal';
+import WorldGlobe3D from '@/components/globe/WorldGlobe3D';
+
+interface HealthServiceInfo {
+  status: string;
+  latencyMs?: number;
+}
+
+interface HealthData {
+  services?: {
+    database?: HealthServiceInfo;
+    redis?: HealthServiceInfo;
+  };
+}
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [healthInfo, setHealthInfo] = useState<any>(null);
+  const [healthInfo, setHealthInfo] = useState<HealthData | null>(null);
   const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
-        const res = await apiClient<any>('/articles/editorial/list?limit=20');
+        const res = await apiClient<Article[] | { data: Article[] }>('/articles/editorial/list?limit=20');
         const list = Array.isArray(res) ? res : res.data || [];
         setArticles(list);
 
         const readyRes = await fetch(`${BACKEND_URL}/health/ready`);
         if (readyRes.ok) {
           const readyJson = await readyRes.json();
-          setHealthInfo(readyJson.data || readyJson);
+          setHealthInfo((readyJson.data || readyJson) as HealthData);
         }
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
@@ -172,6 +186,37 @@ export default function DashboardPage() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* 3D Global News Command Center */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+              <Globe2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+                <span>Global Newsroom 3D Command Center</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                  Interactive
+                </span>
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Drag to rotate the world. Click any continent beacon to teleport directly to its newsroom desk.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/world"
+            className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 dark:hover:text-cyan-300 flex items-center gap-1 transition-colors self-start sm:self-auto"
+          >
+            <span>Open Dedicated Deck</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <WorldGlobe3D height="460px" />
       </div>
 
       {/* Backend Diagnostics & Recent Submissions Split */}

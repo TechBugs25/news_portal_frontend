@@ -12,7 +12,7 @@ export enum ArticleStatus {
 export interface EditorJsBlock {
   id?: string;
   type: string;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 export interface EditorJsOutput {
@@ -60,7 +60,7 @@ export interface CreateArticlePayload {
   metaDescription?: string;
 }
 
-export interface UpdateArticlePayload extends Partial<CreateArticlePayload> {}
+export type UpdateArticlePayload = Partial<CreateArticlePayload>;
 
 export interface UpdateArticleStatusPayload {
   status: ArticleStatus;

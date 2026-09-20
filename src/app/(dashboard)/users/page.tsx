@@ -2,16 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  Users,
   UserPlus,
   ShieldCheck,
-  Mail,
   Trash2,
   RefreshCw,
   Search,
-  Lock,
   Edit2,
-  UserCheck,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -55,10 +51,10 @@ export default function UsersManagementPage() {
   const [deleteModalUser, setDeleteModalUser] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  async function loadUsers() {
-    setIsLoading(true);
+  async function loadUsers(showLoading = false) {
+    if (showLoading) setIsLoading(true);
     try {
-      const res = await apiClient<any>('/users?limit=50');
+      const res = await apiClient<User[] | { data: User[] }>('/users?limit=50');
       const list = Array.isArray(res) ? res : res.data || [];
       setUsers(list);
     } catch (err) {
@@ -69,7 +65,9 @@ export default function UsersManagementPage() {
   }
 
   useEffect(() => {
-    loadUsers();
+    Promise.resolve().then(() => {
+      loadUsers();
+    });
   }, []);
 
   async function handleCreateUser(e: React.FormEvent) {
@@ -99,8 +97,8 @@ export default function UsersManagementPage() {
       setRole(UserRole.REPORTER);
       await loadUsers();
       toast.show('Staff account created successfully!', 'success');
-    } catch (err: any) {
-      setFormError(err.message || 'Failed to create user');
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Failed to create user');
     } finally {
       setIsProcessing(false);
     }
@@ -154,8 +152,8 @@ export default function UsersManagementPage() {
 
       toast.show(`Staff member "${updated.firstName} ${updated.lastName}" updated!`, 'success');
       setEditingUser(null);
-    } catch (err: any) {
-      setEditFormError(err.message || 'Failed to update user');
+    } catch (err: unknown) {
+      setEditFormError(err instanceof Error ? err.message : 'Failed to update user');
     } finally {
       setIsProcessing(false);
     }
@@ -169,8 +167,8 @@ export default function UsersManagementPage() {
       toast.show(`User "${deleteModalUser.email}" removed.`, 'info');
       setUsers((prev) => prev.filter((u) => u.id !== deleteModalUser.id));
       setDeleteModalUser(null);
-    } catch (err: any) {
-      toast.show(err.message || 'Failed to delete user', 'error');
+    } catch (err: unknown) {
+      toast.show(err instanceof Error ? err.message : 'Failed to delete user', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -217,7 +215,7 @@ export default function UsersManagementPage() {
           <Button
             size="sm"
             variant="outline"
-            onClick={loadUsers}
+            onClick={() => loadUsers(true)}
             isLoading={isLoading}
             className="gap-1.5"
           >
